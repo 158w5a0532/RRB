@@ -1,147 +1,136 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RRB NTPC Simulator</title>
-  <style>
-    body { background-color: #0d1117; color: #c9d1d9; font-family: sans-serif; padding: 20px; line-height: 1.6; }
-    .container { max-width: 600px; margin: auto; }
-    .card { background: #161b22; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 20px; }
-    button { display: block; width: 100%; padding: 15px; margin: 10px 0; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 5px; cursor: pointer; text-align: left; font-size: 16px; transition: background 0.2s; }
-    button:hover:not(:disabled) { background: #30363d; }
-    button:disabled { cursor: default; opacity: 0.9; }
-    .correct { background: #238636 !important; color: white !important; border-color: #2ea043 !important; }
-    .incorrect { background: #da3633 !important; color: white !important; border-color: #f85149 !important; }
-    .hidden { display: none; }
-    #stats { color: #8b949e; font-size: 0.9em; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 10px; font-weight: bold; }
-    #question-text { font-size: 1.1em; white-space: pre-wrap; margin-bottom: 20px; }
-    #explanation-text { white-space: pre-wrap; line-height: 1.8; color: #c9d1d9; font-size: 0.95em; }
-    #explanation-card h4 { margin-top: 0; color: #58a6ff; font-size: 1.1em; }
-    #next-btn { text-align: center; background: #1f6feb; border-color: #388bfd; font-weight: bold; margin-top: 20px; }
-    #next-btn:hover { background: #388bfd; }
-  </style>
+  <title>Grammar Defender: Linie 1 Arcade</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#070913">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h2 style="text-align: center; color: #58a6ff;">RRB NTPC Simulator</h2>
-    <div id="loading" style="text-align: center; color: #8b949e;">Connecting to databank...</div>
-    
-    <div id="quiz" class="hidden">
-        <div class="card">
-            <div id="stats">Score: 0.00 | Question: 1</div>
-            <div id="question-text"></div>
-            <div id="options"></div>
+  <div id="game-app">
+    <!-- Fullscreen Combat Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- In-Game Combat Top Navigation & Jump Overlay -->
+    <div id="combat-hud-overlay" class="combat-hud hidden">
+      <div class="hud-left">
+        <button id="btn-back-to-menu" class="hud-back-btn" type="button">◀ MAP</button>
+        <span id="hud-level-tag">LVL 1.01</span>
+      </div>
+
+      <!-- Jump to Question Box -->
+      <div class="hud-center-jump">
+        <label for="jump-q-input">Q#</label>
+        <input id="jump-q-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="60" placeholder="1">
+        <span id="jump-total-label">/ 18</span>
+        <button id="btn-jump-q" class="btn-jump" type="button">GO</button>
+      </div>
+
+      <div class="hud-right">
+        <span id="hud-score">0 PTS</span>
+      </div>
+    </div>
+
+    <!-- Native Mobile Level Selection Overlay (59 Levels) -->
+    <div id="screen-level-select" class="ui-screen">
+      <header class="select-header">
+        <div class="brand-row">
+          <span class="badge-stage">STAGE A1</span>
+          <h1>GRAMMAR DEFENDER</h1>
+          <span class="badge-count" id="unlocked-counter">59 SECTORS</span>
+        </div>
+        <p class="sub-headline">Linie 1: Offizieller Grammatik-Katalog</p>
+
+        <!-- Quick Resume Last Played Session Banner -->
+        <div id="resume-banner" class="resume-banner hidden">
+          <div class="resume-info">
+            <span class="resume-label">LETZTE SITZUNG:</span>
+            <span id="resume-text">LVL 1.01 • FRAGE 5</span>
+          </div>
+          <button id="btn-resume-session" class="btn-resume-action" type="button">WEITERSPIELEN ▶</button>
         </div>
         
-        <div id="explanation-card" class="card hidden">
-            <h4>Explanation:</h4>
-            <div id="explanation-text"></div>
-            <button id="next-btn">Next Question</button>
+        <!-- Chapter Filter Chips -->
+        <nav class="chapter-chips" id="chapter-filter">
+          <button class="chip active" data-filter="all">ALLE (59)</button>
+          <button class="chip" data-filter="K1-K4">K1–K4</button>
+          <button class="chip" data-filter="K5-K8">K5–K8</button>
+          <button class="chip" data-filter="K9-K12">K9–K12</button>
+          <button class="chip" data-filter="K13-K16">K13–K16</button>
+        </nav>
+      </header>
+
+      <!-- Smooth 120Hz Touch Scroll Container -->
+      <main class="level-card-list" id="level-list-container">
+        <!-- Rendered dynamically by engine.js -->
+      </main>
+    </div>
+
+    <!-- On-Screen Combat Touch Controls -->
+    <div id="touch-controls" class="hidden">
+      <div id="touch-steer-zone">
+        <span class="touch-steer-label">◀ SLIDE TO STEER ▶</span>
+      </div>
+      <div class="touch-actions">
+        <button id="btn-codex" class="control-btn" type="button">CODEX</button>
+        <button id="btn-fire" class="control-btn fire-glow" type="button">FIRE</button>
+      </div>
+    </div>
+
+    <!-- In-Game Grammatik-Codex Sheet -->
+    <div id="codex-modal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <div class="modal-bar">
+          <span id="codex-level-tag">LVL 1.01</span>
+          <h2 id="codex-title">Thema</h2>
+          <button id="codex-close" class="close-btn" type="button">&times;</button>
         </div>
+        <div class="modal-body">
+          <div class="codex-section">
+            <label>GRAMMATIK-REGEL</label>
+            <p id="codex-rule-box"></p>
+          </div>
+          <div class="codex-section">
+            <label>BEISPIEL AUS LINIE 1</label>
+            <p id="codex-example-box"></p>
+          </div>
+        </div>
+        <button id="btn-resume" class="btn-primary" type="button">ZURÜCK ZUR MISSION</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="screen-victory" class="result-modal hidden">
+      <div class="result-card">
+        <div class="stars-earned" id="victory-stars">★★★</div>
+        <h2 id="victory-title">SEKTOR BEREINIGT!</h2>
+        <p class="score-display" id="victory-score">SCORE: 12,500</p>
+        <p class="rule-recap" id="victory-rule-desc"></p>
+        <div class="result-actions">
+          <button id="btn-next-level" class="btn-primary" type="button">NÄCHSTER SEKTOR</button>
+          <button id="btn-select-map" class="btn-secondary" type="button">SEKTOR-KARTE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="screen-gameover" class="result-modal hidden">
+      <div class="result-card danger">
+        <h2 class="alert-text">SCHILDE KOLLABIERT</h2>
+        <p class="sub-alert">Die Grammatik-Barriere wurde durchbrochen.</p>
+        <p class="hint-display" id="gameover-hint"></p>
+        <div class="result-actions">
+          <button id="btn-retry" class="btn-primary alert-btn" type="button">NEUSTART</button>
+          <button id="btn-fail-map" class="btn-secondary" type="button">SEKTOR-KARTE</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-    let questions = [];
-    let currentQIndex = 0;
-    let score = 0;
-
-    // Robust CSV Parser to handle commas and line breaks inside quotes
-    function parseCSV(str) {
-        const arr = []; let quote = false; let row = []; let col = '';
-        for (let c = 0; c < str.length; c++) {
-            let cc = str[c], nc = str[c+1];
-            if (cc === '"' && quote && nc === '"') { col += cc; ++c; continue; }
-            if (cc === '"') { quote = !quote; continue; }
-            if (cc === ',' && !quote) { row.push(col); col = ''; continue; }
-            if (cc === '\n' && !quote) { row.push(col); arr.push(row); col = ''; row = []; continue; }
-            if (cc === '\r' && !quote) { continue; } 
-            col += cc;
-        }
-        if (col) row.push(col);
-        if (row.length) arr.push(row);
-        return arr;
-    }
-
-    async function init() {
-        try {
-            // Target the detailed CSV generated previously
-            const response = await fetch('RRB_NTPC_Detailed_4500_Question_Bank.csv');
-            if (!response.ok) throw new Error("Database file not found");
-            const text = await response.text();
-            const data = parseCSV(text);
-            
-            // Map 9 columns: Skip header (row 0), enforce length requirement
-            questions = data.slice(1).filter(r => r.length >= 9);
-            questions.sort(() => Math.random() - 0.5); // Randomize dataset order
-            
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('quiz').classList.remove('hidden');
-            loadQuestion();
-        } catch (err) {
-            document.getElementById('loading').innerText = 'System Error: Could not load RRB_NTPC_Detailed_4500_Question_Bank.csv. Verify the file exists in the repository root.';
-            document.getElementById('loading').style.color = '#f85149';
-        }
-    }
-
-    function loadQuestion() {
-        const q = questions[currentQIndex];
-        document.getElementById('stats').innerText = `Score: ${score.toFixed(2)} | Question: ${currentQIndex + 1} of ${questions.length}`;
-        
-        // Build header [Subject - Topic] and append Question body
-        document.getElementById('question-text').innerHTML = `<span style="color:#8b949e; font-size:0.85em; text-transform:uppercase; letter-spacing:1px;">[${q[0]} - ${q[1]}]</span><br><br>${q[2]}`;
-        
-        const optionsDiv = document.getElementById('options');
-        optionsDiv.innerHTML = '';
-        
-        // Extract the 4 options and shuffle their display order
-        const options = [q[3], q[4], q[5], q[6]];
-        options.sort(() => Math.random() - 0.5); 
-        
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.innerText = opt;
-            // q[7] = Correct Answer, q[8] = Detailed Explanation
-            btn.onclick = () => checkAnswer(btn, opt, q[7], q[8]);
-            optionsDiv.appendChild(btn);
-        });
-        
-        document.getElementById('explanation-card').classList.add('hidden');
-    }
-
-    function checkAnswer(btn, selected, correct, explanation) {
-        const buttons = document.getElementById('options').querySelectorAll('button');
-        buttons.forEach(b => b.disabled = true); 
-        
-        // Apply strict RRB NTPC marking: +1 for correct, -1/3 for incorrect
-        if (selected.trim() === correct.trim()) {
-            btn.classList.add('correct');
-            score += 1;
-        } else {
-            btn.classList.add('incorrect');
-            score -= 0.333;
-            // Reveal the correct option
-            buttons.forEach(b => { if(b.innerText.trim() === correct.trim()) b.classList.add('correct'); });
-        }
-        
-        // Display the tactical breakdown
-        document.getElementById('explanation-text').innerText = explanation;
-        document.getElementById('explanation-card').classList.remove('hidden');
-        document.getElementById('stats').innerText = `Score: ${score.toFixed(2)} | Question: ${currentQIndex + 1} of ${questions.length}`;
-    }
-
-    document.getElementById('next-btn').onclick = () => {
-        currentQIndex++;
-        if (currentQIndex < questions.length) {
-            loadQuestion();
-        } else {
-            document.getElementById('quiz').innerHTML = `<h3 style="text-align:center; color:#2ea043;">Simulation Complete</h3><p style="text-align:center;">Final Score: ${score.toFixed(2)} / ${questions.length}</p>`;
-        }
-    };
-
-    // Boot the engine
-    init();
-  </script>
+  <script src="data_a1.js"></script>
+  <script src="engine.js"></script>
 </body>
 </html>
